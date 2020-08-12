@@ -2,7 +2,7 @@ import firebase from 'firebase/app';
 import 'firebase/firestore';
 import 'firebase/auth';
 
-const config = {
+const firebaseConfig = {
     apiKey: "AIzaSyCGU1791V59kPUJWAtKH1_UdbYsn9d4250",
     authDomain: "buy-db.firebaseapp.com",
     databaseURL: "https://buy-db.firebaseio.com",
@@ -10,7 +10,7 @@ const config = {
     storageBucket: "buy-db.appspot.com",
     messagingSenderId: "503491546527",
     appId: "1:503491546527:web:0ff9640df6daaf832741aa"
-};
+  };
 
 export const createUserProfileDocument = async (userAuth, additionalData) => {
     if(!userAuth) return;
@@ -33,7 +33,41 @@ export const createUserProfileDocument = async (userAuth, additionalData) => {
     return documentReference;
 }
 
-firebase.initializeApp(config);
+export const addCollectionAndDocuments = async (collectionKey, documentsToAdd) => {
+    const collectionRef = firestore.collection(collectionKey);
+
+    const batch = firestore.batch();
+
+    Object.keys(documentsToAdd).map((documentId) => ({
+        title: documentsToAdd[documentId].title,
+        items: documentsToAdd[documentId].items
+    })).forEach(document => {
+        const newDocRef = collectionRef.doc();
+        batch.set(newDocRef, document);
+    });
+
+    return batch.commit();
+}
+
+export const convertCollectionsSnapshotToMap = collections => {
+    const transformedCollection = collections.docs.map(document => {
+        const { title, items } = document.data();
+
+        return {
+            routeName: encodeURI(title.toLowerCase()),
+            id: document.id,
+            title,
+            items
+        }
+    })
+
+    return transformedCollection.reduce((acc, collection) => {
+        acc[collection.title.toLowerCase()] = collection;
+        return acc;
+    }, {})
+}
+
+firebase.initializeApp(firebaseConfig);
 
 export const auth = firebase.auth();
 export const firestore = firebase.firestore();
